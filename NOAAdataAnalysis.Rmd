@@ -1,0 +1,140 @@
+
+# Analyzing NOAA Storm Database to find Events causing maximum damage.
+
+## Synopsis
+
+The follwing analysis of the NOAA Storm Data tries to find the events that cause maximum damage with respect to health and economics. The number of Injuries caused as a result of an event has been ignored as the fatalities has been given more weightage for analysis on health. The analysis shows that Tornados are the most harmful when it comes to health. Analysis of economics is divided into 2 parts: The amount of crops damaged, and the losses resulting from damage in property. It has been found that Draught causes the maximum loss when it comes to crops, while floods cause the maximum damage when it comes to Property.
+
+<br/>
+
+## Data Processing
+
+#### Downloading and Reading the Data into file
+
+```{r, cache=TRUE}
+data <- read.csv("Storm Data.csv")
+str(data)
+```
+
+<br/>
+
+#### We need only a part of the Data for this particular analysis
+
+
+```{r,cache=TRUE}
+data <- data[,c("EVTYPE","FATALITIES","CROPDMG","CROPDMGEXP","PROPDMG","PROPDMGEXP")]
+```
+
+<br/>
+
+#### Finding the total number of recored health hazards(In terms of Fatalities)
+Note: Injuries are Number of ignored as the number of Fatalities is a much better parameter to define health related hazards.
+
+
+```{r,cache=TRUE}
+fatalSum <- aggregate(FATALITIES~EVTYPE,data = data,FUN = sum,na.rm = TRUE)
+## Stores the total number of fatalities reported
+
+```
+
+<br/>
+
+#### Now, finding the amount of economic damage by finding the damage to crops and property
+
+
+```{r,cache=TRUE}
+
+## Damage to property caused
+data$PROPEXP[data$PROPDMGEXP == "+"     ]   <-  0
+data$PROPEXP[data$PROPDMGEXP == "0"     ]   <-  1
+data$PROPEXP[data$PROPDMGEXP == "5"     ]   <-  10^5
+data$PROPEXP[data$PROPDMGEXP == "6"     ]   <-  10^6
+data$PROPEXP[data$PROPDMGEXP == "?"     ]   <-  0
+data$PROPEXP[data$PROPDMGEXP == "4"     ]   <-  10000
+data$PROPEXP[data$PROPDMGEXP == "2"     ]   <-  100
+data$PROPEXP[data$PROPDMGEXP ==  "K"   ]  <-    1000
+data$PROPEXP[data$PROPDMGEXP == "M"     ]   <-  10^6
+data$PROPEXP[data$PROPDMGEXP == ""      ]   <-  1
+data$PROPEXP[data$PROPDMGEXP == "B"     ]   <-  10^9
+data$PROPEXP[data$PROPDMGEXP == "m"     ]   <-  10^6
+data$PROPEXP[data$PROPDMGEXP == "3"     ]   <-  1000
+data$PROPEXP[data$PROPDMGEXP == "h"     ]   <-  100
+data$PROPEXP[data$PROPDMGEXP == "7"     ]   <-  10^7
+data$PROPEXP[data$PROPDMGEXP == "H"     ]   <-  100
+data$PROPEXP[data$PROPDMGEXP == "-"     ]   <-  0
+data$PROPEXP[data$PROPDMGEXP == "1"     ]   <-  10
+data$PROPEXP[data$PROPDMGEXP == "8" ]   <-  10^8
+
+data$PROPDMG <- data$PROPDMG * data$PROPEXP
+
+propSum <- cropSum <- aggregate(PROPDMG~EVTYPE,data = data,FUN = sum, na.rm = TRUE)
+## Stores the total damage to property
+
+## Standardizing Damage to crops
+data$CROPEXP[data$CROPDMGEXP == "?"     ]   <-  0
+data$CROPEXP[data$CROPDMGEXP == "0"     ]   <-  1
+data$CROPEXP[data$CROPDMGEXP ==  ""     ]   <-  1
+data$CROPEXP[data$CROPDMGEXP == "k"     ]   <-  1000
+data$CROPEXP[data$CROPDMGEXP == "2" ]   <-  100
+data$CROPEXP[data$CROPDMGEXP == "M"     ]   <-  10^6
+data$CROPEXP[data$CROPDMGEXP == "K"     ]   <-  1000
+data$CROPEXP[data$CROPDMGEXP == "m"     ]   <-  10^9
+data$CROPEXP[data$CROPDMGEXP == "B"     ]   <-  10^6
+
+data$CROPDMG <- data$CROPDMG * data$CROPEXP
+
+cropSum <- aggregate(CROPDMG~EVTYPE,data = data,FUN = sum, na.rm = TRUE)
+## Stores the total damage to crops
+```
+
+
+<br/>
+
+## Results
+
+#### Analyzing the types of events are most harmful to population health. 
+
+
+```{r,cache=TRUE}
+##Soring fatalSum
+fatalSum<-fatalSum[order(x = fatalSum$FATALITIES,decreasing = TRUE),]
+
+##Plotting the top 5 #Fatalities alongside the Event. 
+barplot(fatalSum$FATALITIES[1:5],names.arg = fatalSum$EVTYPE[1:5],ylab = "Fatalities",xlab = "Event",main = "Top 5 highest Fatalities",col = heat.colors(5))
+```
+
+
+### Thus, we see that Tornados are  most harmful to population health.
+
+<br/>
+
+#### Analyzing the types of events have the greatest economic consequences.
+#### This includes loss to property and crops  
+
+####Dealing with Crops First,
+
+
+```{r,cache=TRUE}
+cropSum<-cropSum[order(x = cropSum$CROPDMG,decreasing = TRUE),]
+
+##Plotting the top 5 #Fatalities alongside the Event. 
+barplot(cropSum$CROPDMG[1:5],names.arg = cropSum$EVTYPE[1:5],ylab = "Damage to Crops",xlab = "Event",main = "Top 5 Losses due to damage of Crops",col = heat.colors(5))
+```
+
+
+### Thus, we see that the highest loss to Crops is caused by Drought  
+
+<br/>
+
+####Next, dealing with Property
+
+
+```{r,cache=TRUE}
+propSum<-propSum[order(x = propSum$PROPDMG,decreasing = TRUE),]
+
+##Plotting the top 5 #Fatalities alongside the Event. 
+barplot(propSum$PROPDMG[1:5],names.arg = propSum$EVTYPE[1:5],ylab = "Damage to Property",xlab = "Event",main = "Top 5 Losses to Property",col = heat.colors(5))
+```
+<br/>
+
+### Thus we see that highest loss to Property is caused by Flood
